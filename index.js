@@ -180,6 +180,76 @@ app.get('/vulcantire/tire', async (req, res) => {
 });
 
 
+app.get('/simpletire/size/:size', async (req, res) => {
+    const { size } = req.params;
+    const { page = 1, sort = 'popular' } = req.query;
+
+    if (!size) {
+        return res.status(400).json({ error: 'Size parameter is required (e.g., 195-70-14)' });
+    }
+
+    try {
+        const url = `https://simpletire.com/_next/data/qH6suniMYQa9Ak3PJgqtn/tire-sizes/${size}.json?size=${size}`;
+        
+        const response = await axios.get(url, {
+            headers: {
+                'accept': '*/*',
+                'accept-language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7',
+                'priority': 'u=1, i',
+                'referer': 'https://simpletire.com/',
+                'sec-ch-ua': '"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
+                'sec-ch-ua-mobile': '?1',
+                'sec-ch-ua-platform': '"Android"',
+                'sec-fetch-dest': 'empty',
+                'sec-fetch-mode': 'cors',
+                'sec-fetch-site': 'same-origin',
+                'user-agent': 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36',
+                'x-nextjs-data': '1'
+            }
+        });
+
+        // Extract and simplify the response
+        const pageProps = response.data.pageProps;
+        const simplifiedResponse = {
+            size: pageProps.size,
+            tires: pageProps.tires.map(tire => ({
+                id: tire.id,
+                brand: tire.brand.name,
+                model: tire.model.name,
+                image: tire.image?.url,
+                price: tire.price,
+                rating: tire.rating,
+                reviewCount: tire.reviewCount,
+                specs: {
+                    loadIndex: tire.loadIndex,
+                    speedRating: tire.speedRating,
+                    utqg: tire.utqg,
+                    warranty: tire.warranty
+                },
+                promotions: tire.promotions?.map(promo => ({
+                    type: promo.type,
+                    description: promo.description,
+                    disclaimer: promo.disclaimer
+                }))
+            })),
+            filters: pageProps.filters,
+            pagination: {
+                currentPage: pageProps.currentPage,
+                totalPages: pageProps.totalPages,
+                totalResults: pageProps.totalResults
+            }
+        };
+
+        res.json(simplifiedResponse);
+    } catch (error) {
+        console.error('Error fetching from SimpleTire:', error);
+        res.status(500).json({ 
+            error: 'Failed to fetch tire data',
+            details: error.response?.data || error.message 
+        });
+    }
+});
+
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
