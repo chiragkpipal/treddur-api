@@ -179,6 +179,24 @@ app.get('/vulcantire/tire', async (req, res) => {
     }
 });
 
+app.get('/tirerack/size', async (req, res) => {
+  try {
+    const url = 'https://www.tirerack.com/tires/TireSearchResults.jsp?zip-code=94541&width=225/&ratio=45&diameter=17&rearWidth=255/&rearRatio=40&rearDiameter=17&performance=ALL';
+    
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0', // helps avoid being blocked
+      }
+    });
+
+    res.set('Content-Type', 'text/html');
+    res.send(response.data); // sends the HTML as plain text
+  } catch (error) {
+    console.error('Error fetching Tire Rack page:', error.message);
+    res.status(500).send('Failed to fetch tire data.');
+  }
+});
+
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
