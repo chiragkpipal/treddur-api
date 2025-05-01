@@ -90,6 +90,74 @@ app.get('/vulcantire/search', async (req, res) => {
     }
 });
 
+
+app.get('/vulcantire/tire', async (req, res) => {
+    const { stock, f } = req.query;
+    
+    if (!stock || !f) {
+        return res.status(400).json({ error: 'Missing required parameters: stock, f' });
+    }
+
+    try {
+        const url = `https://www.vulcantire.com/cgi-bin/tiresearch.cgi?stock=${encodeURIComponent(stock)}&f=${encodeURIComponent(f)}`;
+        
+        const response = await axios.get(url, {
+            headers: {
+                'Upgrade-Insecure-Requests': '1',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 CrKey/1.54.250320'
+            }
+        });
+
+        const dom = new JSDOM(response.data);
+        const document = dom.window.document;
+        
+        const contentWrap = document.querySelector('.divContentWrap.elem-white');
+        if (!contentWrap) {
+            return res.status(404).json({ error: 'Tire details not found' });
+        }
+
+        // Extract description
+        const descriptionDiv = contentWrap.querySelector('.item-desc-wrap .elem-green span[itemprop="description"]');
+        const descriptionText = descriptionDiv ? descriptionDiv.innerHTML : '';
+        const descriptionPoints = descriptionText.split('<br><br>')
+            .map(point => point.trim())
+            .filter(point => point.length > 0);
+
+        // Extract specifications
+        const specDiv = contentWrap.querySelector('.item-spec');
+        const specs = {};
+        
+        if (specDiv) {
+            const specItems = specDiv.querySelectorAll('dt, dd');
+            let currentKey = '';
+            
+            specItems.forEach(item => {
+                if (item.tagName.toLowerCase() === 'dt') {
+                    currentKey = item.textContent.trim();
+                } else if (item.tagName.toLowerCase() === 'dd' && currentKey) {
+                    // Handle warranty special case
+                    if (currentKey === 'General Warranty') {
+                        const warrantyText = item.querySelector('td')?.textContent.trim() || 
+                                           item.textContent.split('\n')[0].trim();
+                        specs[currentKey] = warrantyText;
+                    } else {
+                        specs[currentKey] = item.textContent.trim();
+                    }
+                    currentKey = '';
+                }
+            });
+        }
+
+        res.json({
+            description: descriptionPoints,
+            specifications: specs
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Error fetching tire details' });
+    }
+});
+
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
