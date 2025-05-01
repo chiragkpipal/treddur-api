@@ -111,20 +111,40 @@ app.get('/vulcantire/tire', async (req, res) => {
         const dom = new JSDOM(response.data);
         const document = dom.window.document;
         
-        const contentWrap = document.querySelector('.divContentWrap.elem-white');
-        if (!contentWrap) {
-            return res.status(404).json({ error: 'Tire details not found' });
+        const productDiv = document.querySelector('div[itemscope][itemtype="http://schema.org/Product"]');
+        if (!productDiv) {
+            return res.status(404).json({ error: 'Product information not found' });
         }
 
-        // Extract description
-        const descriptionDiv = contentWrap.querySelector('.item-desc-wrap .elem-green span[itemprop="description"]');
+        // Extract basic product info from schema
+        const productInfo = {
+            name: productDiv.querySelector('[itemprop="name"]')?.textContent.trim(),
+            brand: productDiv.querySelector('[itemprop="brand"]')?.textContent.trim(),
+            image: productDiv.querySelector('[itemprop="image"]')?.getAttribute('src'),
+            description: productDiv.querySelector('[itemprop="description"]')?.textContent.trim(),
+            sku: productDiv.querySelector('[itemprop="sku"]')?.textContent.trim(),
+            mpn: productDiv.querySelector('[itemprop="mpn"]')?.textContent.trim(),
+            weight: productDiv.querySelector('[itemprop="weight"]')?.textContent.trim(),
+            condition: productDiv.querySelector('[itemprop="itemCondition"]')?.textContent.trim()
+        };
+
+        // Extract offers if available
+        const offerDiv = productDiv.querySelector('[itemprop="offers"]');
+        if (offerDiv) {
+            productInfo.price = offerDiv.querySelector('[itemprop="price"]')?.textContent.trim();
+            productInfo.priceCurrency = offerDiv.querySelector('[itemprop="priceCurrency"]')?.textContent.trim();
+            productInfo.availability = offerDiv.querySelector('[itemprop="availability"]')?.textContent.trim();
+        }
+
+        // Extract description points (from previous implementation)
+        const descriptionDiv = document.querySelector('.item-desc-wrap .elem-green span[itemprop="description"]');
         const descriptionText = descriptionDiv ? descriptionDiv.innerHTML : '';
         const descriptionPoints = descriptionText.split('<br><br>')
             .map(point => point.trim())
             .filter(point => point.length > 0);
 
-        // Extract specifications
-        const specDiv = contentWrap.querySelector('.item-spec');
+        // Extract specifications (from previous implementation)
+        const specDiv = document.querySelector('.item-spec');
         const specs = {};
         
         if (specDiv) {
@@ -149,6 +169,7 @@ app.get('/vulcantire/tire', async (req, res) => {
         }
 
         res.json({
+            product: productInfo,
             description: descriptionPoints,
             specifications: specs
         });
