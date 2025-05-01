@@ -330,6 +330,94 @@ app.get('/simpletire/tire', async (req, res) => {
     }
 });
 
+app.get('/simpletire/car', async (req, res) => {
+    // Required parameters
+    const { 
+        make, 
+        model, 
+        year, 
+        tireSize
+    } = req.query;
+
+    // Optional parameters with defaults
+    const {
+        page = '1',
+        curationLimit = '1',
+        limit = '10',
+        userRegion = '1',
+        userZip = '11205'
+    } = req.query;
+
+    // Validate required parameters
+    if (!make || !model || !year || !tireSize) {
+        return res.status(400).json({
+            error: 'Missing required parameters',
+            requiredParams: [
+                'make (e.g., honda)',
+                'model (e.g., accord)',
+                'year (e.g., 2023)',
+                'tireSize (e.g., 225-50r17)'
+            ],
+            example: '/simpletire/car?make=honda&model=accord&year=2023&tireSize=225-50r17'
+        });
+    }
+
+    try {
+        const url = new URL('https://simpletire.com/api/summary-vehicle');
+        const params = new URLSearchParams({
+            make,
+            model,
+            year,
+            tireSize,
+            page,
+            curationLimit,
+            limit,
+            userRegion,
+            userZip
+        });
+        url.search = params.toString();
+
+        const referrer = `https://simpletire.com/vehicles/${make}-tires/${model}/${year}?tireSize=${tireSize}`;
+
+        const response = await axios.get(url.toString(), {
+            headers: {
+                'accept': '*/*',
+                'accept-language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7',
+                'cache-control': 'no-cache',
+                'pragma': 'no-cache',
+                'priority': 'u=1, i',
+                'referer': referrer,
+                'sec-fetch-dest': 'empty',
+                'sec-fetch-mode': 'cors',
+                'sec-fetch-site': 'same-origin',
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36'
+            },
+            timeout: 10000,
+            withCredentials: true
+        });
+
+        // Forward the exact response
+        res.set(response.headers);
+        res.status(response.status).send(response.data);
+
+    } catch (error) {
+        console.error('Error fetching vehicle tire data:', error);
+        
+        if (error.response) {
+            // Forward error response from API
+            res.set(error.response.headers);
+            res.status(error.response.status).send(error.response.data);
+        } else {
+            res.status(500).json({
+                error: 'Failed to fetch vehicle tire data',
+                message: error.message,
+                params: req.query
+            });
+        }
+    }
+});
+
+
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
