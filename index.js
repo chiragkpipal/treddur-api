@@ -47,6 +47,7 @@ app.get('/vulcantire/search', async (req, res) => {
             
             const modelNode = cells[2].querySelector('a');
             const model = modelNode ? modelNode.textContent.trim() : '';
+            const modelLink = modelNode ? `https://www.vulcantire.com${modelNode.getAttribute('href').replace('?', '/cgi-bin/tiresearch.cgi?')}` : '';
             
             const color = cells[3].textContent.trim();
             const specs = cells[4].textContent.trim();
@@ -71,6 +72,7 @@ app.get('/vulcantire/search', async (req, res) => {
                 image_url: imageUrl,
                 brand,
                 model,
+                model_link: modelLink, // Added the model link here
                 color,
                 specs,
                 mileage,
