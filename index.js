@@ -417,6 +417,59 @@ app.get('/simpletire/car', async (req, res) => {
     }
 });
 
+app.get('/tirebuyer/brands/:brand', async (req, res) => {
+    const { brand } = req.params;
+    const { zipCode = '11205' } = req.query;
+
+    if (!brand) {
+        return res.status(400).json({ 
+            error: 'Brand parameter is required',
+            example: '/tirebuyer/brands/continental/products?zipCode=11205'
+        });
+    }
+
+    try {
+        const url = `https://www.tirebuyer.com/_next/data/Yy3ktq9FQFfJMz5klgSM1/tires/brands/${brand}/products.json?brand=${brand}&zipCode=${zipCode}`;
+        
+        const response = await axios.get(url, {
+            headers: {
+                'accept': '*/*',
+                'accept-language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7',
+                'priority': 'u=1, i',
+                'referer': `https://www.tirebuyer.com/tires/brands/${brand}/products?zipCode=${zipCode}`,
+                'sec-ch-ua': '"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
+                'sec-ch-ua-mobile': '?1',
+                'sec-ch-ua-platform': '"Android"',
+                'sec-fetch-dest': 'empty',
+                'sec-fetch-mode': 'cors',
+                'sec-fetch-site': 'same-origin',
+                'user-agent': 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36',
+                'x-nextjs-data': '1'
+            },
+            timeout: 10000
+        });
+
+        // Forward the exact response with original headers
+        res.set(response.headers);
+        res.status(response.status).send(response.data);
+
+    } catch (error) {
+        console.error(`Error fetching ${brand} products:`, error);
+        
+        if (error.response) {
+            // Forward the error response exactly as received
+            res.set(error.response.headers);
+            res.status(error.response.status).send(error.response.data);
+        } else {
+            res.status(500).json({ 
+                error: `Failed to fetch ${brand} products`,
+                message: error.message 
+            });
+        }
+    }
+});
+
+
 
 // Start the server
 const PORT = process.env.PORT || 3000;
