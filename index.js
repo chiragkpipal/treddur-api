@@ -469,7 +469,66 @@ app.get('/tirebuyer/brands/:brand', async (req, res) => {
     }
 });
 
+app.get('/tirebuyer/size/:size', async (req, res) => {
+    const { size } = req.params;
+    const { zipCode = '11205' } = req.query;
 
+    // Validate size format (e.g., 195-70-14)
+    if (!size || !/^\d+-\d+-\d+$/.test(size)) {
+        return res.status(400).json({ 
+            error: 'Invalid size format',
+            message: 'Size must be in format width-aspectRatio-diameter (e.g., 195-70-14)'
+        });
+    }
+
+    try {
+        const url = `https://www.tirebuyer.com/tires/size/${size}?zipCode=${zipCode}`;
+        
+        const response = await axios.get(url, {
+            headers: {
+                'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                'accept-language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7',
+                'cache-control': 'max-age=0',
+                'priority': 'u=0, i',
+                'referer': 'https://www.tirebuyer.com/',
+                'sec-ch-ua': '"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
+                'sec-ch-ua-mobile': '?1',
+                'sec-ch-ua-platform': '"Android"',
+                'sec-fetch-dest': 'document',
+                'sec-fetch-mode': 'navigate',
+                'sec-fetch-site': 'same-origin',
+                'sec-fetch-user': '?1',
+                'upgrade-insecure-requests': '1',
+                'user-agent': 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36'
+            },
+            timeout: 10000
+        });
+
+        // Forward the exact HTML response
+        res.set({
+            'content-type': response.headers['content-type'],
+            'cache-control': response.headers['cache-control']
+        });
+        res.status(response.status).send(response.data);
+
+    } catch (error) {
+        console.error(`Error fetching tires for size ${size}:`, error);
+        
+        if (error.response) {
+            // Forward the error response
+            res.set({
+                'content-type': error.response.headers['content-type'],
+                'cache-control': error.response.headers['cache-control']
+            });
+            res.status(error.response.status).send(error.response.data);
+        } else {
+            res.status(500).json({ 
+                error: `Failed to fetch tires for size ${size}`,
+                message: error.message 
+            });
+        }
+    }
+});
 
 // Start the server
 const PORT = process.env.PORT || 3000;
