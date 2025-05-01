@@ -191,7 +191,7 @@ app.get('/simpletire/size/:size', async (req, res) => {
     }
 
     try {
-        const url = `https://simpletire.com/_next/data/qH6suniMYQa9Ak3PJgqtn/tire-sizes/${size}.json?size=${size}`;
+        const url = `https://simpletire.com/tire-sizes/${size}.json?size=${size}`;
         
         const response = await axios.get(url, {
             headers: {
