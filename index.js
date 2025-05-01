@@ -234,6 +234,102 @@ app.get('/simpletire/size/:size', async (req, res) => {
     }
 });
 
+
+
+app.get('/simpletire/brands/:brand', async (req, res) => {
+    const { brand } = req.params;
+    const { userRegion = '1', userZip = '11205' } = req.query;
+
+    if (!brand) {
+        return res.status(400).json({ 
+            error: 'Brand parameter is required',
+            example: '/simpletire/brands/yokohama'
+        });
+    }
+
+    try {
+        const url = `https://simpletire.com/api/brands/${brand}?userRegion=${userRegion}&userZip=${userZip}`;
+        
+        const response = await axios.get(url, {
+            headers: {
+                'accept': 'application/json',
+                'sec-ch-dpr': '2',
+                'sec-ch-viewport-width': '1280',
+                'referer': 'https://simpletire.com/',
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36'
+            },
+            timeout: 10000
+        });
+
+        // Forward the exact response with original headers
+        res.set(response.headers);
+        res.status(response.status).send(response.data);
+
+    } catch (error) {
+        console.error(`Error fetching ${brand} tires:`, error);
+        
+        if (error.response) {
+            // Forward the error response exactly as received
+            res.set(error.response.headers);
+            res.status(error.response.status).send(error.response.data);
+        } else {
+            res.status(500).json({ 
+                error: `Failed to fetch ${brand} tire data`,
+                message: error.message 
+            });
+        }
+    }
+});
+
+
+app.get('/simpletire/tire', async (req, res) => {
+    const { brand, productLine, userRegion = '1', userZip = '11205' } = req.query;
+
+    if (!brand || !productLine) {
+        return res.status(400).json({ 
+            error: 'Both brand and productLine parameters are required',
+            example: '/simpletire/product-detail?brand=yokohama&productLine=geolandar-at-g015'
+        });
+    }
+
+    try {
+        const url = `https://simpletire.com/api/product-detail?brand=${encodeURIComponent(brand)}&productLine=${encodeURIComponent(productLine)}&userRegion=${userRegion}&userZip=${userZip}`;
+        
+        const response = await axios.get(url, {
+            headers: {
+                'accept': 'application/json',
+                'referer': `https://simpletire.com/brands/${brand}-tires/${productLine}`,
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36',
+                'sec-fetch-site': 'same-origin',
+                'sec-fetch-mode': 'cors'
+            },
+            timeout: 10000
+        });
+
+        // Forward the exact response with original headers
+        res.set(response.headers);
+        res.status(response.status).send(response.data);
+
+    } catch (error) {
+        console.error(`Error fetching product details for ${brand} ${productLine}:`, error);
+        
+        if (error.response) {
+            // Forward the error response exactly as received
+            res.set(error.response.headers);
+            res.status(error.response.status).send(error.response.data);
+        } else {
+            res.status(500).json({ 
+                error: `Failed to fetch product details`,
+                message: error.message,
+                details: {
+                    brand,
+                    productLine
+                }
+            });
+        }
+    }
+});
+
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
