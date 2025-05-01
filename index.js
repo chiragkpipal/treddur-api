@@ -39,8 +39,8 @@ app.get('/vulcantire/search', async (req, res) => {
             // Skip header rows (those with th elements)
             if (row.querySelector('th')) return;
 
-            const imgNode = cells[0].querySelector('.imgTireGifTable');
-            const imageUrl = imgNode ? `https://www.vulcantire.com${imgNode.getAttribute('src')}` : '';
+            const imgNode = cells[0].querySelector('span img');
+            const imageUrl = imgNode ? imgNode.getAttribute('src') : '';
             
             const brandNode = cells[1].querySelector('.divBrandName');
             const brand = brandNode ? brandNode.textContent.trim() : '';
