@@ -196,7 +196,136 @@ app.get('/tirerack/size', async (req, res) => {
     res.status(500).send('Failed to fetch tire data.');
   }
 });
+app.get('/discounttire/brand', async (req, res) => {
+    const { brand, storeCode = '2337', page = 0, pageSize = 12, sort = 'BEST_SELLER' } = req.query;
 
+    if (!brand) {
+        return res.status(400).json({ error: 'Brand parameter is required' });
+    }
+
+    try {
+        const graphqlQuery = {
+            operationName: "StaggeredSearchQuery",
+            variables: {
+                search: {
+                    applyFallBack: false,
+                    initialFacets: [],
+                    initialFilters: [{
+                        facetName: "BRAND_NAME",
+                        facetValue: `${brand}-tires`
+                    }],
+                    nearByStoreCodes: [],
+                    page: {
+                        pageNumber: parseInt(page),
+                        pageSize: parseInt(pageSize),
+                        sort
+                    },
+                    productType: "TIRE",
+                    query: "",
+                    queryType: "BRAND_SEARCH",
+                    staggeredType: "SET"
+                },
+                storeCode
+            },
+            query: `query StaggeredSearchQuery($search: StaggeredProductSearchInput!, $vehicleInfo: VehicleInput, $storeCode: String!) {
+                productSearch {
+                    staggeredSearchQuery(search: $search, vehicleInfo: $vehicleInfo, storeCode: $storeCode) {
+                        ...productSearchResult
+                    }
+                }
+            }
+            fragment productSearchResult on ProductSearchResult {
+                facets {
+                    ...facetsFragment
+                }
+                pagination {
+                    currentPage
+                    numberOfPages
+                    pageSize
+                    totalNumberOfResults
+                }
+                results {
+                    ...productFragment
+                }
+                sorts {
+                    code
+                    name
+                    selected
+                }
+                recommendationAvailable
+            }
+            fragment productFragment on ProductData {
+                code
+                name
+                description
+                brand
+                price {
+                    formattedValue
+                    value
+                }
+                images {
+                    url
+                }
+                size
+                averageRating
+                reviewSummaryData {
+                    totalCount
+                }
+                stock {
+                    availabilityMessage
+                }
+                potentialPromotions {
+                    title
+                    shortDescription
+                }
+            }
+            fragment facetsFragment on FacetData_SearchStateData {
+                name
+                values {
+                    name
+                    count
+                }
+            }`
+        };
+
+        const response = await axios.post('https://www.discounttire.com/webapi/discounttire.graph', graphqlQuery, {
+            headers: {
+                'accept': '*/*',
+                'content-type': 'application/json',
+                'x-dtpc': '7$407496384_232h16vAFMSEMWBNFVJOAAWOHRCOOTRIEGQOEPJ-0e0',
+                'user-agent': 'Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 CrKey/1.54.250320'
+            }
+        });
+
+        // Simplify the response for your API
+        const simplifiedResults = response.data.data.productSearch.staggeredSearchQuery.results.map(product => ({
+            id: product.code,
+            name: product.name,
+            brand: product.brand,
+            description: product.description,
+            price: product.price.formattedValue,
+            image: product.images[0]?.url,
+            size: product.size,
+            rating: product.averageRating,
+            reviewCount: product.reviewSummaryData?.totalCount,
+            availability: product.stock.availabilityMessage,
+            promotions: product.potentialPromotions?.map(promo => ({
+                title: promo.title,
+                description: promo.shortDescription
+            }))
+        }));
+
+        res.json({
+            pagination: response.data.data.productSearch.staggeredSearchQuery.pagination,
+            results: simplifiedResults,
+            facets: response.data.data.productSearch.staggeredSearchQuery.facets
+        });
+
+    } catch (error) {
+        console.error('Error fetching from Discount Tire:', error);
+        res.status(500).json({ error: 'Failed to fetch tire data' });
+    }
+});
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
