@@ -530,6 +530,52 @@ app.get('/tirebuyer/size/:size', async (req, res) => {
     }
 });
 
+app.get('/tirebuyer/car/', async (req, res) => {
+    try {
+        // Extract query parameters from the request
+        const { category, year, make, model, trim } = req.query;
+        
+        // Validate required parameters
+        if (!category || !year || !make || !model) {
+            return res.status(400).json({ error: 'Missing required parameters: category, year, make, model' });
+        }
+
+        // Construct the URL
+        const baseUrl = 'https://connect.treadsy.com/api/fitment-service/vehicle';
+        const url = new URL(baseUrl);
+        url.searchParams.append('category', category);
+        url.searchParams.append('year', year);
+        url.searchParams.append('make', make);
+        url.searchParams.append('model', model);
+        if (trim) {
+            url.searchParams.append('trim', trim);
+        }
+
+        // Make the request to Treadsy API
+        const response = await fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json, text/plain, */*',
+                'accept-language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7',
+                'priority': 'u=1, i',
+                'x-marketplace-key': 'MnxYaURNMlB2d09sbWxzWE4wT2dIYmhmSGFRM3VxOWpmeDRRcWtuUE5QZFV5c3FmQWpVcUc1S1hOTFk5QTdKRDRPbUdZZlh1M3V1Z0NFOFh1ZzgyWHJwNjBSU1RDTjdadkN3MjQ5NFA0dUxaTDE2Q1d5UHBCMUFNdlQ3cXdGOGFLSg==',
+            },
+            referrer: 'https://www.tirebuyer.com/',
+            referrerPolicy: 'strict-origin-when-cross-origin'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching vehicle data:', error);
+        res.status(500).json({ error: 'Failed to fetch vehicle data', details: error.message });
+    }
+});
+
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
