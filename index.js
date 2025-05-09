@@ -1,8 +1,10 @@
 const express = require('express');
 const axios = require('axios');
 const { JSDOM } = require('jsdom');
+const cors = require('cors');
 
 const app = express();
+app.use(cors());
 
 app.get('/vulcantire/search', async (req, res) => {
     const { width, ratio, diameter } = req.query;
