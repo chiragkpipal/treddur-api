@@ -1,8 +1,19 @@
 const express = require('express');
 const axios = require('axios');
 const { JSDOM } = require('jsdom');
-
+const cors = require('cors');
 const app = express();
+
+// Enable CORS for all routes with permissive settings
+app.use(cors({
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST', 'OPTIONS'], // Allowed methods
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'], // Allowed headers
+  credentials: false // No credentials needed
+}));
+
+// Handle preflight requests
+app.options('*', cors()); // Enable pre-flight for all routes
 
 app.get('/vulcantire/search', async (req, res) => {
     const { width, ratio, diameter } = req.query;
