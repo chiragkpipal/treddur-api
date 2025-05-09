@@ -606,6 +606,58 @@ app.get('/simpletire/models/', async (req, res) => {
     }
 });
 
+app.get('/tirebuyer/vehicle/', async (req, res) => {
+  try {
+    const { category = 'tires', year, make, model, trim } = req.query;
+
+    // Validate required parameters
+    if (!year || !make || !model) {
+      return res.status(400).json({ 
+        error: 'Missing required parameters: year, make, model' 
+      });
+    }
+
+    const response = await axios.get('https://connect.treadsy.com/api/fitment-service/vehicle', {
+      params: {
+        category,
+        year,
+        make,
+        model,
+        trim: trim || undefined // Only include if provided
+      },
+      headers: {
+        'accept': 'application/json, text/plain, */*',
+        'accept-language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7',
+        'priority': 'u=1, i',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'cross-site',
+        'x-marketplace-key': 'MnxYaURNMlB2d09sbWxzWE4wT2dIYmhmSGFRM3VxOWpmeDRRcWtuUE5QZFV5c3FmQWpVcUc1S1hOTFk5QTdKRDRPbUdZZlh1M3V1Z0NFOFh1ZzgyWHJwNjBSU1RDTjdadkN3MjQ5NFA0dUxaTDE2Q1d5UHBCMUFNdlQ3cXdGOGFLSg==',
+        'x-session-id': `601133107::${generateSessionId()}`
+      },
+      referrer: 'https://www.tirebuyer.com/',
+      referrerPolicy: 'strict-origin-when-cross-origin'
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    console.error('Treadsy API error:', error.message);
+    res.status(500).json({ 
+      error: 'Failed to fetch vehicle fitment',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+// Helper function to generate a session ID
+function generateSessionId() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
