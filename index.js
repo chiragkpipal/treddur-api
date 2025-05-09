@@ -578,50 +578,30 @@ app.get('/tirebuyer/car/', async (req, res) => {
 
 app.get('/simpletire/models/', async (req, res) => {
     try {
-        // Extract query parameters
-        const { queryText, additionalQueryText, queryType } = req.query;
-        
-        // Validate required parameters
-        if (!queryText || !queryType) {
-            return res.status(400).json({ 
-                error: 'Missing required parameters: queryText and queryType' 
-            });
-        }
+        const { queryText = '', additionalQueryText = '', queryType = 'makeModel' } = req.query;
 
-        // Construct the URL
-        const baseUrl = 'https://simpletire.com/api/search-typeahead';
-        const url = new URL(baseUrl);
-        url.searchParams.append('queryText', queryText);
-        url.searchParams.append('queryType', queryType);
-        
-        // Add optional parameter if provided
-        if (additionalQueryText) {
-            url.searchParams.append('additionalQueryText', additionalQueryText);
-        }
-
-        // Make the request to SimpleTire API
-        const response = await fetch(url.toString(), {
-            method: 'GET',
+        // Axios GET request to SimpleTire API
+        const response = await axios.get('https://simpletire.com/api/search-typeahead', {
+            params: {
+                additionalQueryText,
+                queryText,
+                queryType,
+            },
             headers: {
                 'accept': '*/*',
                 'accept-language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7',
                 'priority': 'u=1, i',
             },
             referrer: 'https://simpletire.com/',
-            referrerPolicy: 'strict-origin-when-cross-origin'
+            referrerPolicy: 'strict-origin-when-cross-origin',
         });
 
-        if (!response.ok) {
-            throw new Error(`SimpleTire API error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        res.json(data);
+        res.json(response.data); // Send back the data
     } catch (error) {
-        console.error('Error fetching SimpleTire models:', error);
-        res.status(500).json({ 
-            error: 'Failed to fetch vehicle models', 
-            details: error.message 
+        console.error('🔥 SimpleTire API Error:', error.message);
+        res.status(500).json({
+            error: 'Failed to fetch models',
+            details: error.response?.data || error.message,
         });
     }
 });
