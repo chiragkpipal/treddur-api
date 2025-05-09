@@ -576,6 +576,56 @@ app.get('/tirebuyer/car/', async (req, res) => {
     }
 });
 
+app.get('/simpletire/models/', async (req, res) => {
+    try {
+        // Extract query parameters
+        const { queryText, additionalQueryText, queryType } = req.query;
+        
+        // Validate required parameters
+        if (!queryText || !queryType) {
+            return res.status(400).json({ 
+                error: 'Missing required parameters: queryText and queryType' 
+            });
+        }
+
+        // Construct the URL
+        const baseUrl = 'https://simpletire.com/api/search-typeahead';
+        const url = new URL(baseUrl);
+        url.searchParams.append('queryText', queryText);
+        url.searchParams.append('queryType', queryType);
+        
+        // Add optional parameter if provided
+        if (additionalQueryText) {
+            url.searchParams.append('additionalQueryText', additionalQueryText);
+        }
+
+        // Make the request to SimpleTire API
+        const response = await fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+                'accept': '*/*',
+                'accept-language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7',
+                'priority': 'u=1, i',
+            },
+            referrer: 'https://simpletire.com/',
+            referrerPolicy: 'strict-origin-when-cross-origin'
+        });
+
+        if (!response.ok) {
+            throw new Error(`SimpleTire API error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching SimpleTire models:', error);
+        res.status(500).json({ 
+            error: 'Failed to fetch vehicle models', 
+            details: error.message 
+        });
+    }
+});
+
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
